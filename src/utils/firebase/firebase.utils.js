@@ -1,9 +1,11 @@
+import { async } from "@firebase/util";
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
   signInWithRedirect,
   signInWithPopup,
   GoogleAuthProvider,
+  createUserWithEmailAndPassword
 } from "firebase/auth";
 import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -25,40 +27,49 @@ provider.setCustomParameters({
 
 export const auth = getAuth();
 export const signInWithGooglePopup = () => signInWithPopup(auth, provider);
+export const signInWithGoogleRedirect = () =>
+  signInWithRedirect(auth, provider);
 
 export const db = getFirestore();
 
-export const createUserDocumentFromAuth = async (userAuth) => {
+export const createUserDocumentFromAuth = async (
+  userAuth,
+  additionalInformation = {}
+  ) => {
+  if (!userAuth) return;
+
   const userDocRef = doc(db, "users", userAuth.uid);
 
-  console.log(userDocRef);
-
-  const userSnapshot = await getDoc(userDocRef)
+  const userSnapshot = await getDoc(userDocRef);
   console.log(userSnapshot);
 
   //if user data doesn't exist
-    //create/ set the document with the data from userAuth in my collection
-    
-  if(!userSnapshot.exists()) {
+   //create/ set the document with the data from userAuth in my collection
+
+  if (!userSnapshot.exists()) {
     const { displayName, email } = userAuth;
     const createdAt = new Date();
 
     try {
-      await setDoc (userDocRef, {
+      await setDoc(userDocRef, {
         displayName,
         email,
-        createdAt
-      })
+        createdAt,
+        ...additionalInformation,
+      });
     } catch (error) {
-      console.log('error creating the user', error.message);
+      console.log("error creating the user", error.message);
     }
   }
-    //if user data exist
-      //return userDocRef
-  return userDocRef;
 
-    
-  
+  //if user data exist
+    //return userDocRef
 
+    return userDocRef;
 };
- 
+
+export const createAuthUserWithEmailAndPassword = async (email, password) => {
+  if(!email || !password) return;
+
+  return await createUserWithEmailAndPassword(auth, email, password)
+}
